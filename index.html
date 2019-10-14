@@ -261,7 +261,7 @@ B  -------'  '---'     |              |     ''---'
         <figure><svg class="diagram"></svg></figure>
     </section>
 
-    <script>window.markdeepOptions = {mode: 'script'};</script>
+    <script>window.markdeepOptions = {mode: "script"};</script>
     <script src="https://casual-effects.com/markdeep/latest/markdeep.min.js" charset="utf-8"></script>
     <script>
         document.head.innerHTML = document.head.innerHTML + window.markdeep.stylesheet();
@@ -285,6 +285,7 @@ B  -------'  '---'     |              |     ''---'
         var lineHeightSlider = document.querySelector(".line-height-slider");
         var letterSpacingSlider = document.querySelector(".letter-spacing-slider");
 
+        // set font size and restore settings from local storage
         function setup() {
 
             // set font size based on what markdeep decides to use for diagrams
@@ -299,7 +300,7 @@ B  -------'  '---'     |              |     ''---'
                 input.value = inputSource;
                 render();
             }
-            if (darkMode = window.localStorage.getItem("dark-mode")) {  // TODO
+            if (darkMode = window.localStorage.getItem("dark-mode")) {
                 darkModeCheckbox.checked = darkMode == "dark";
                 toggleDarkMode(darkModeCheckbox);
             }
@@ -318,6 +319,7 @@ B  -------'  '---'     |              |     ''---'
         }
         setup();
 
+        // take input and convert it to a diagram, superimpose that on the input
         function render() {
             setStatus("Saving and rendering preview...")
 
@@ -335,7 +337,7 @@ B  -------'  '---'     |              |     ''---'
             }
         }
 
-        // copy source to the clipboard
+        // copy source (optionally with Markdeep diagram marker asterisks) to the clipboard
         function copySource(button, withAsterisks = true) {
             setStatus("Copying to the clipboard...")
             //setStatus("Copying to the clipboard" + (withAsterisks ? " (with asterisks)" : "") + "...")
@@ -396,21 +398,18 @@ B  -------'  '---'     |              |     ''---'
             }
         }
 
-        // set the passed zoom level
         function adjustZoomLevel(zoomLevel) {
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
             zoomLevelSlider.parentNode.querySelector("b").innerHTML = parseInt(100 * zoomLevel) + "%";
             window.localStorage.setItem("zoom-level", zoomLevel);
         }
 
-        // set the passed line height
         function adjustLineHeight(lineHeight) {
             document.documentElement.style.setProperty('--input-line-height', lineHeight + "em");
             lineHeightSlider.parentNode.querySelector("b").innerHTML = lineHeight + "em";
             window.localStorage.setItem("input-line-height", lineHeight);
         }
 
-        // set the passed letter spacing
         function adjustLetterSpacing(letterSpacing) {
             document.documentElement.style.setProperty('--input-letter-spacing', letterSpacing + "px");
             letterSpacingSlider.parentNode.querySelector("b").innerHTML = letterSpacing + "px";
