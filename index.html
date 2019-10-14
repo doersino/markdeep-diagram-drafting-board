@@ -1,4 +1,4 @@
-<html>
+<html class="light">
 <head>
     <meta charset="utf-8" lang="en">
     <title>Markdeep Diagram Drafting Board</title>
@@ -20,6 +20,9 @@
 
             font-size: var(--font-size);
             font-family: var(--font-stack);
+        }
+        html.dark {
+            filter: invert(100%);
         }
         body {
             margin: 0;
@@ -167,7 +170,7 @@
 
         <hr>
 
-        <button onclick="togglePreview();">toggle preview</button>
+        <label><input type="checkbox" onclick="togglePreview(this);" checked> show preview</label>
         <span>Hides or shows the superimposed preview.</span>
 
         <button onclick="copySource(this);">copy source<b></b></button>
@@ -177,6 +180,8 @@
         <span>Disable to enter a mode where typing <em>overwrites</em> characters instead of inserting.</span>-->
 
         <hr>
+
+        <label><input type="checkbox" onclick="toggleDarkMode(this);" data-default="light" class="dark-mode-checkbox"> dark mode</label>
 
         <label>
             <input type="range" min="0.5" max="3.0" step="0.01" value="1.0" data-default="1.0" class="zoom-level-slider" oninput="adjustZoomLevel(this.value)">
@@ -192,7 +197,7 @@
             <input type="range" min="-0.30" max="0.30" step="0.01" value="0.15" data-default="0.15" class="letter-spacing-slider" oninput="adjustLetterSpacing(this.value)">
             <br>letter spacing <b>0.15px</b>
         </label>
-        <span>Both might need adjusting depending on your zoom level, browser and installed fonts.</span>
+        <span>Both of the above might need adjusting depending on your zoom level, browser and installed fonts.</span>
 
         <p><span><em>Your source and these settings are continually written to local storage. They will be restored when you close and reopen this page.</em></span></p>
         <a class="reset" href="javascript:resetSettings();">reset settings</a>
@@ -245,6 +250,7 @@ B  -------'  '---'     |              |     ''---'
 
         /*var inputMode = "insert";*/
 
+        var darkModeCheckbox = document.querySelector(".dark-mode-checkbox");
         var zoomLevelSlider = document.querySelector(".zoom-level-slider");
         var lineHeightSlider = document.querySelector(".line-height-slider");
         var letterSpacingSlider = document.querySelector(".letter-spacing-slider");
@@ -263,17 +269,21 @@ B  -------'  '---'     |              |     ''---'
                 input.value = inputSource;
                 render();
             }
-            if (zoomLevel = window.localStorage.getItem("input-zoom-level")) {
-                adjustZoomLevel(zoomLevel);
+            if (darkMode = window.localStorage.getItem("dark-mode")) {  // TODO
+                darkModeCheckbox.checked = darkMode == "dark";
+                toggleDarkMode(darkModeCheckbox);
+            }
+            if (zoomLevel = window.localStorage.getItem("zoom-level")) {
                 zoomLevelSlider.value = zoomLevel;
+                adjustZoomLevel(zoomLevel);
             }
             if (lineHeight = window.localStorage.getItem("input-line-height")) {
-                adjustLineHeight(lineHeight);
                 lineHeightSlider.value = lineHeight;
+                adjustLineHeight(lineHeight);
             }
             if (letterSpacing = window.localStorage.getItem("input-letter-spacing")) {
-                adjustLetterSpacing(letterSpacing);
                 letterSpacingSlider.value = letterSpacing;
+                adjustLetterSpacing(letterSpacing);
             }
         }
         setup();
@@ -309,8 +319,8 @@ B  -------'  '---'     |              |     ''---'
             output.innerHTML = diagramSource;
         }
 
-        function togglePreview() {
-            if (output.style.display == "none") {
+        function togglePreview(checkbox) {
+            if (checkbox.checked) {
                 output.style.display = "block";
             } else {
                 output.style.display = "none";
@@ -377,15 +387,24 @@ B  -------'  '---'     |              |     ''---'
             } else {
                 inputMode = "overwrite";
             }
-
         }
         */
+
+        function toggleDarkMode(checkbox) {
+            if (checkbox.checked) {
+                document.documentElement.className = "dark";
+                window.localStorage.setItem("dark-mode", "dark");
+            } else {
+                document.documentElement.className = "light";
+                window.localStorage.setItem("dark-mode", "light");
+            }
+        }
 
         // set the passed zoom level
         function adjustZoomLevel(zoomLevel) {
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
             zoomLevelSlider.parentNode.querySelector("b").innerHTML = parseInt(100 * zoomLevel) + "%";
-            window.localStorage.setItem("input-zoom-level", zoomLevel);
+            window.localStorage.setItem("zoom-level", zoomLevel);
         }
 
         // set the passed line height
@@ -403,17 +422,23 @@ B  -------'  '---'     |              |     ''---'
         }
 
         function resetSettings() {
-            adjustZoomLevel(zoomLevelSlider.getAttribute("data-default"));
+            darkModeCheckbox.checked = darkModeCheckbox.getAttribute("data-default") == "dark";
+            toggleDarkMode(darkModeCheckbox);
+
             zoomLevelSlider.value = zoomLevelSlider.getAttribute("data-default");
-            adjustLineHeight(lineHeightSlider.getAttribute("data-default"));
+            adjustZoomLevel(zoomLevelSlider.value);
+
             lineHeightSlider.value = lineHeightSlider.getAttribute("data-default");
-            adjustLetterSpacing(letterSpacingSlider.getAttribute("data-default"));
+            adjustLineHeight(lineHeightSlider.value);
+
             letterSpacingSlider.value = letterSpacingSlider.getAttribute("data-default");
+            adjustLetterSpacing(letterSpacingSlider.value);
         }
 
         function nukeLocalStorage() {
             localStorage.removeItem("input-source");
-            localStorage.removeItem("input-zoom-level");
+            localStorage.removeItem("dark-mode");
+            localStorage.removeItem("zoom-level");
             localStorage.removeItem("input-line-height");
             localStorage.removeItem("input-letter-spacing");
         }
