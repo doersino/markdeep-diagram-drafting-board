@@ -1,0 +1,438 @@
+<html>
+<head>
+    <meta charset="utf-8" lang="en">
+    <title>Markdeep Diagram Drafting Board</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            /* ridiculous values, to be overwritten via js */
+            --font-size: 10px;
+            --font-stack: "Comic Sans MS";
+
+            --sidebar-width: 17rem;
+
+            /* default values (must match "data-default" attributes) */
+            --zoom-level: 1;
+            --input-line-height: 1.25em;
+            --input-letter-spacing: 0.15px;
+
+            font-size: var(--font-size);
+            font-family: var(--font-stack);
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #eee;
+        }
+        aside {
+            width: var(--sidebar-width);
+            background-color: #ccc;
+            padding: 1em;
+            position: absolute;
+            max-height: 100%;
+            overflow-y: scroll;
+        }
+        h1 {
+            font: inherit !important;
+            font-size: 2em !important;
+            border: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            /*transform-origin: top left;
+            transform: skew(12deg);*/
+        }
+        h1:before {
+            content: "" !important;
+            margin: 0 !important;
+
+            /*content: "✒" !important;
+            position: absolute;
+            font-size: 5em;
+            color: rgba(0,0,0,0.2);
+            display: inline-block;
+            transform: rotate(70deg);
+            left: 3rem;
+            top: 1rem;*/
+        }
+        a {
+            font: inherit !important;
+            color: #666 !important;
+            text-decoration: underline !important;
+        }
+        button, label {
+            font: inherit;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            text-align: left;
+            margin: 1em 0 0.3em 0;
+            padding: 0.5em;
+            display: block;
+            width: 100%;
+            text-transform: uppercase;
+        }
+        button:hover {
+            color: white;
+            background-color: #444;
+            border-color: #eee;
+        }
+        button b {
+            float: right;
+            height: 0;
+            margin-top: -0.3em;
+        }
+        span {
+            font-size: 0.8em;
+            display: block;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #aaa;
+            margin: 1rem 0;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 0;
+        }
+        label b {
+            font-weight: normal;
+            float: right;
+            color: #888;
+        }
+        a.reset {
+            display: inline-block;
+            text-transform: uppercase;
+            text-decoration: none !important;
+            font-size: 0.6em !important;
+            letter-spacing: 1px;
+        }
+
+        footer {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background-color: #ddd;
+            padding: 1em;
+            font-size: 0.8em;
+            pointer-events: none;
+            opacity: 1;
+        }
+        footer.hidden {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        section {
+            width: calc(100vw - var(--sidebar-width));
+            height: 100vh;
+            margin-left: var(--sidebar-width);
+            background-color: white;
+        }
+        textarea {
+            padding: 1em;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            border: 0px;
+            background-color: transparent;
+            outline: none;
+            resize: none;
+            font: inherit;
+            z-index: 10;
+            color: #ccc;
+
+            font-size: calc(1em * var(--zoom-level));
+            line-height: calc(var(--input-line-height));
+            letter-spacing: calc(var(--input-letter-spacing));
+        }
+        figure {
+            margin: 0;
+            margin-top: calc(-100vh + (-8px + 1em) * var(--zoom-level));
+            margin-left: calc((-4px + 1em) * var(--zoom-level));
+        }
+        svg.diagram {
+            z-index: 1;
+            pointer-events: none;
+            transform-origin: top left;
+            transform: scale(var(--zoom-level));
+        }
+    </style>
+</head>
+<body class="md">
+    <aside>
+        <h1>Markdeep Diagram <em>Drafting Board</em></h1>
+        <p>This tool enables you to draft <a href="https://casual-effects.com/markdeep/features.md.html#basicformatting/diagrams">Markdeep diagrams</a> with a <strong>live-updating preview overlaid onto your source code</strong>.</p>
+
+        <hr>
+
+        <button onclick="togglePreview();">toggle preview</button>
+        <span>Hides or shows the superimposed preview.</span>
+
+        <button onclick="copySource(this);">copy source<b></b></button>
+        <span>The copied source will be surrounded with asterisks, ready for pasting into a Markdeep document.</span>
+
+        <label><input type="checkbox" onclick="setInputMode(this);" checked> insert mode</label>
+        <span>Disable to enter a mode where typing <em>overwrites</em> characters instead of inserting.</span>
+
+        <hr>
+
+        <label>
+            <input type="range" min="0.5" max="3.0" step="0.01" value="1.0" data-default="1.0" class="zoom-level-slider" oninput="adjustZoomLevel(this.value)">
+            <br>zoom level <b>100%</b>
+        </label>
+        <span>Scales both source and preview.</span>
+
+        <label>
+            <input type="range" min="1.00" max="1.50" step="0.01" value="1.25" data-default="1.25" class="line-height-slider" oninput="adjustLineHeight(this.value)">
+            <br>line height <b>1.25em</b>
+        </label>
+        <label>
+            <input type="range" min="-0.30" max="0.30" step="0.01" value="0.15" data-default="0.15" class="letter-spacing-slider" oninput="adjustLetterSpacing(this.value)">
+            <br>letter spacing <b>0.15px</b>
+        </label>
+        <span>Both might need adjusting depending on your zoom level, browser and installed fonts.</span>
+
+        <p><span><em>Your source and these settings are continually written to local storage. They will be restored when you close and reopen this page.</em></span></p>
+        <a class="reset" href="javascript:resetSettings();">reset settings</a>
+    </aside>
+    <footer class="hidden"></footer>
+    <section>
+        <textarea onkeyup="render()">                    ____                      *
+                   |    |_____.---.           |
+                   o     _____|    )----------)-------.
+                  / \   |     '---'           |     __|__
+                 /___\  |                     |     \   /
+                   |    '-------------.       |      \ /
+A₁ ----------------'                  |       |       o
+      .-------------------.     o-----)-------'       |
+      |                   |___.---.   |               |___.---.
+A₂ ---*---.__.---.         ___|    )--*--.__..---.     ____)   )----- Y₁
+           __|    o----*--'   '---'    ______))   )---'   '---'
+B  -------'  '---'     |              |     ''---'
+                       |              o
+                       |             / \
+                       |            /___\
+                       |              |
+                       '--------------'
+
+                                 ^
+                                 |
+
+                         EDIT THIS DIAGRAM</textarea>
+        <figure><svg class="diagram"></svg></figure>
+    </section>
+
+    <script>window.markdeepOptions = {mode: 'script'};</script>
+    <script src="https://casual-effects.com/markdeep/latest/markdeep.min.js" charset="utf-8"></script>
+    <script>
+        document.head.innerHTML = document.head.innerHTML + window.markdeep.stylesheet();
+
+        // helper function for displaying status messages
+        function setStatus(message) {
+            var status = document.querySelector("footer");
+            status.innerHTML = message;
+            status.className = "";
+            setTimeout(function () {
+                var status = document.querySelector("footer");
+                status.className = "hidden";
+            }, 200);
+        }
+
+        var input = document.querySelector("textarea");
+        var output = document.querySelector("figure");
+
+        var inputMode = "insert";
+
+        var zoomLevelSlider = document.querySelector(".zoom-level-slider");
+        var lineHeightSlider = document.querySelector(".line-height-slider");
+        var letterSpacingSlider = document.querySelector(".letter-spacing-slider");
+
+        function setup() {
+
+            // set font size based on what markdeep decides to use for diagrams
+            var dummyDiagram = document.querySelector("svg.diagram");
+            var fontStack = window.getComputedStyle(dummyDiagram).getPropertyValue("font-family");
+            var fontSize = window.getComputedStyle(dummyDiagram).getPropertyValue("font-size");
+            document.documentElement.style.setProperty("--font-stack", fontStack);
+            document.documentElement.style.setProperty("--font-size", fontSize);
+
+            // restore state from local storage
+            if (inputSource = window.localStorage.getItem("input-source")) {  // purposefully not catching the empty case
+                input.value = inputSource;
+                render();
+            }
+            if (zoomLevel = window.localStorage.getItem("input-zoom-level")) {
+                adjustZoomLevel(zoomLevel);
+                zoomLevelSlider.value = zoomLevel;
+            }
+            if (lineHeight = window.localStorage.getItem("input-line-height")) {
+                adjustLineHeight(lineHeight);
+                lineHeightSlider.value = lineHeight;
+            }
+            if (letterSpacing = window.localStorage.getItem("input-letter-spacing")) {
+                adjustLetterSpacing(letterSpacing);
+                letterSpacingSlider.value = letterSpacing;
+            }
+        }
+        setup();
+
+        // TODO catch tabs, convert to spaces, see https://stackoverflow.com/a/13130
+        var oldInputLength = 0;
+        function render() {
+            setStatus("Saving and rendering preview...")
+
+            // TODO this is too slow when typing fast => do in a different event listener? see also https://stackoverflow.com/questions/10761508/change-html-textbox-overwrite-instead-of-insert-as-user-types
+            if (inputMode == "overwrite" && oldInputLength != 0 && oldInputLength == input.value.length - 1) {
+                var t = input.selectionStart;
+                input.value = input.value.substring(0, t) + input.value.substring(t + 1);
+                input.selectionStart = t;
+                input.selectionEnd = t;
+            }
+
+            var inputSource = input.value;
+            window.localStorage.setItem("input-source", inputSource);
+            var diagramSource = window.markdeep.formatDiagram(inputSource);
+            output.innerHTML = diagramSource;
+
+            oldInputLength = inputSource.length;
+        }
+
+        function togglePreview() {
+            if (output.style.display == "none") {
+                output.style.display = "block";
+            } else {
+                output.style.display = "none";
+            }
+        }
+
+        // copy source to the clipboard
+        function copySource(button, withAsterisks = true) {
+            setStatus("Copying to the clipboard...")
+            //setStatus("Copying to the clipboard" + (withAsterisks ? " (with asterisks)" : "") + "...")
+
+            // make a backup of the current value (if withAsterisks is true, we'll eventually need to restore this)
+            var inputSourceBackup = input.value;
+
+            if (withAsterisks) {
+                var lines = input.value.split("\n");
+
+                // determine length of longest line
+                var longestLineLength = 0;
+                lines = lines.map(function(line) {
+                    line = line.replace("\n", "");
+                    if (line.length > longestLineLength) {
+                        longestLineLength = line.length;
+                    }
+                    return line;
+                });
+
+                // pad with spaces and insert leading and trailing asterisks
+                lines = lines.map(line => "* " + line.padEnd(longestLineLength, " ") + " *");
+
+                // insert top and bottom rows of asterisks
+                var topBottom = "*".repeat(longestLineLength + 4);
+                lines.splice(0, 0, topBottom);
+                lines.push(topBottom);
+
+                input.value = lines.join("\n");
+            }
+
+            input.focus();
+            input.select();
+
+            var successful = false;
+            try {
+                successful = document.execCommand("copy");
+            } catch (err) {
+                console.log("Unable to copy to clipboard: " + err);
+            }
+
+            button.querySelector("b").innerHTML = successful ? "✅" : "❌";
+            setTimeout(function() {
+                button.querySelector("b").innerHTML = "";
+            }, 1000);
+
+            // restore backup
+            input.value = inputSourceBackup;
+        }
+
+        // TODO non-insert mode: 1. toggling to it, 2. implementing it
+        // TODO onkeyup: if length has increased by 1, remove the charaster right of the cursor? too simple/error-prone?
+        function setInputMode(checkbox) {
+            if (checkbox.checked) {
+                inputMode = "insert";
+            } else {
+                inputMode = "overwrite";
+            }
+
+        }
+
+        // set the passed zoom level
+        function adjustZoomLevel(zoomLevel) {
+            document.documentElement.style.setProperty('--zoom-level', zoomLevel);
+            zoomLevelSlider.parentNode.querySelector("b").innerHTML = parseInt(100 * zoomLevel) + "%";
+            window.localStorage.setItem("input-zoom-level", zoomLevel);
+        }
+
+        // set the passed line height
+        function adjustLineHeight(lineHeight) {
+            document.documentElement.style.setProperty('--input-line-height', lineHeight + "em");
+            lineHeightSlider.parentNode.querySelector("b").innerHTML = lineHeight + "em";
+            window.localStorage.setItem("input-line-height", lineHeight);
+        }
+
+        // set the passed letter spacing
+        function adjustLetterSpacing(letterSpacing) {
+            document.documentElement.style.setProperty('--input-letter-spacing', letterSpacing + "px");
+            letterSpacingSlider.parentNode.querySelector("b").innerHTML = letterSpacing + "px";
+            window.localStorage.setItem("input-letter-spacing", letterSpacing);
+        }
+
+        function resetSettings() {
+            adjustZoomLevel(zoomLevelSlider.getAttribute("data-default"));
+            zoomLevelSlider.value = zoomLevelSlider.getAttribute("data-default");
+            adjustLineHeight(lineHeightSlider.getAttribute("data-default"));
+            lineHeightSlider.value = lineHeightSlider.getAttribute("data-default");
+            adjustLetterSpacing(letterSpacingSlider.getAttribute("data-default"));
+            letterSpacingSlider.value = letterSpacingSlider.getAttribute("data-default");
+        }
+
+        function nukeLocalStorage() {
+            localStorage.removeItem("input-source");
+            localStorage.removeItem("input-zoom-level");
+            localStorage.removeItem("input-line-height");
+            localStorage.removeItem("input-letter-spacing");
+        }
+    </script>
+
+    <!-- TODO add url -->
+    <a href="https://your-url" class="github-corner" aria-label="View source on GitHub">
+        <svg width="60" height="60" viewBox="0 0 250 250" style="fill:#888; color:#ccc; position: absolute; top: 0; border: 0; left: calc(var(--sidebar-width) - 60px);" aria-hidden="true">
+            <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+            <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+            <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+        </svg>
+    </a>
+    <style>
+        .github-corner:hover .octo-arm {
+            animation:octocat-wave 560ms ease-in-out;
+        }
+        .github-corner svg:hover {
+            fill: #555 !important;
+        }
+        @keyframes octocat-wave {
+            0%, 100% {
+                transform:rotate(0);
+            }
+            20%, 60% {
+                transform:rotate(-25deg);
+            }
+            40%, 80% {
+                transform:rotate(10deg);
+            }
+        }
+    </style>
+</body>
+</html>
