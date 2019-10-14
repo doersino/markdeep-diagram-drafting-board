@@ -2,6 +2,8 @@
 
 *Draft Markdeep diagrams with a live-updating preview overlaid onto your source code.*
 
+![](demo.gif)
+
 
 ## Usage
 
