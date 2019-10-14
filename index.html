@@ -173,8 +173,8 @@
         <button onclick="copySource(this);">copy source<b></b></button>
         <span>The copied source will be surrounded with asterisks, ready for pasting into a Markdeep document.</span>
 
-        <label><input type="checkbox" onclick="setInputMode(this);" checked> insert mode</label>
-        <span>Disable to enter a mode where typing <em>overwrites</em> characters instead of inserting.</span>
+        <!--<label><input type="checkbox" onclick="setInputMode(this);" checked> insert mode</label>
+        <span>Disable to enter a mode where typing <em>overwrites</em> characters instead of inserting.</span>-->
 
         <hr>
 
@@ -243,7 +243,7 @@ B  -------'  '---'     |              |     ''---'
         var input = document.querySelector("textarea");
         var output = document.querySelector("figure");
 
-        var inputMode = "insert";
+        /*var inputMode = "insert";*/
 
         var zoomLevelSlider = document.querySelector(".zoom-level-slider");
         var lineHeightSlider = document.querySelector(".line-height-slider");
@@ -278,10 +278,15 @@ B  -------'  '---'     |              |     ''---'
         }
         setup();
 
-        // TODO catch tabs, convert to spaces, see https://stackoverflow.com/a/13130
-        var oldInputLength = 0;
-        function render() {
-            setStatus("Saving and rendering preview...")
+        /*var oldInputLength = 0;
+        function keyPress(e) {
+
+            console.log(e.keyCode);
+            if (e.keyCode == 9) {  // tab
+                insertAtCursor("    ");  // see https://stackoverflow.com/questions/11076975/insert-text-into-textarea-at-cursor-position-javascript
+                e.preventDefault();
+                return false;
+            }
 
             // TODO this is too slow when typing fast => do in a different event listener? see also https://stackoverflow.com/questions/10761508/change-html-textbox-overwrite-instead-of-insert-as-user-types
             if (inputMode == "overwrite" && oldInputLength != 0 && oldInputLength == input.value.length - 1) {
@@ -291,12 +296,17 @@ B  -------'  '---'     |              |     ''---'
                 input.selectionEnd = t;
             }
 
+            render();
+        }
+        document.addEventListener("keyup", keyPress, false);*/
+
+        function render() {
+            setStatus("Saving and rendering preview...")
+
             var inputSource = input.value;
             window.localStorage.setItem("input-source", inputSource);
             var diagramSource = window.markdeep.formatDiagram(inputSource);
             output.innerHTML = diagramSource;
-
-            oldInputLength = inputSource.length;
         }
 
         function togglePreview() {
@@ -358,6 +368,7 @@ B  -------'  '---'     |              |     ''---'
             input.value = inputSourceBackup;
         }
 
+        /*
         // TODO non-insert mode: 1. toggling to it, 2. implementing it
         // TODO onkeyup: if length has increased by 1, remove the charaster right of the cursor? too simple/error-prone?
         function setInputMode(checkbox) {
@@ -368,6 +379,7 @@ B  -------'  '---'     |              |     ''---'
             }
 
         }
+        */
 
         // set the passed zoom level
         function adjustZoomLevel(zoomLevel) {
