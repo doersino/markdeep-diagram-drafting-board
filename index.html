@@ -211,6 +211,9 @@
         <button onclick="copySource(this);">copy source<b></b></button>
         <span>The copied source will be surrounded with asterisks, ready for pasting into a Markdeep document.</span>
 
+        <button onclick="downloadSVG();">download svg<b></b></button>
+        <span>Handy for inserting your diagram into a non-Markdeep document. <em>Includes the source in a &lt;metadata&gt; tag.</em></span>
+
         <hr>
 
         <label><input type="checkbox" onclick="toggleDarkMode(this);" data-default="light" class="dark-mode-checkbox"> dark mode</label>
@@ -386,6 +389,81 @@ B  -------'  '---'     |              |     ''---'
 
             // restore backup
             input.value = inputSourceBackup;
+        }
+
+        function downloadSVG() {
+            setStatus("Preparing SVG for download...")
+            var diagramElement = output.querySelector("svg");
+
+            // extract computed values for properties that Markdeep determines dynamically
+            var computedStyle = window.getComputedStyle(diagramElement);
+            var computedFontFamily = computedStyle.getPropertyValue("font-family");
+            var computedFontSize = computedStyle.getPropertyValue("font-size");
+            var computedStrokeWidth = computedStyle.getPropertyValue("stroke-width");
+
+            // make a copy of the rendered diagram and apply both extracted "dynamic" styles and "static" styles from the Markdeep source code (version 1.06 – might need updating in the future)
+            var clonedDiagramElement = diagramElement.cloneNode(true);
+            clonedDiagramElement.style += `
+                display: block;
+                font-family: ${computedFontFamily};
+                font-size: ${computedFontSize};
+                text-align: center;
+                stroke-linecap: round;
+                stroke-width: ${computedStrokeWidth};
+                page-break-inside: avoid;
+                stroke: #000;
+                fill: #000;
+            `;
+
+            clonedDiagramElement.querySelectorAll(".opendot").forEach(n => {
+                n.style.setProperty("fill", "#fff");  // weirdly, extending n.style using the += operator doesn't seem to work here
+            });
+            clonedDiagramElement.querySelectorAll(".shadeddot").forEach(n => {
+                n.style.setProperty("fill", "#ccc");
+            });
+            clonedDiagramElement.querySelectorAll(".dotteddot").forEach(n => {
+                n.style.setProperty("stroke", "#000");
+                n.style.setProperty("stroke-dasharray", "4");
+                n.style.setProperty("fill", "none");
+            });
+            clonedDiagramElement.querySelectorAll("text").forEach(n => {
+                n.style.setProperty("stroke", "none");
+            });
+
+            // for convenience, set the viewBox attribute based on the width and height attributes (which are now redundant, so let's remove them)
+            var w = clonedDiagramElement.getAttribute("width"),
+                h = clonedDiagramElement.getAttribute("height");
+            clonedDiagramElement.removeAttribute("width");
+            clonedDiagramElement.removeAttribute("height");
+            clonedDiagramElement.setAttribute("viewBox", "0 0 " + w + " " + h);
+
+            // include the Markdeep diagram source code
+            var inputSource = input.value;
+            var inputSourceElement = document.createElement("metadata");
+            inputSourceElement.innerHTML = inputSource;
+            clonedDiagramElement.appendChild(inputSourceElement);
+
+            // get thusly adjusted diagram source and indent it nicely, based on https://stackoverflow.com/a/49458964
+            var diagramSource = clonedDiagramElement.outerHTML;
+            var formatted = "",
+                indent = "";
+            diagramSource.split(/>\s*</).forEach(function(node) {
+                if (node.match(/^\/\w/)) indent = indent.substring(2);
+                formatted += indent + "<" + node + ">\n";
+                if (node.match(/^<?\w[^>]*[^\/]$/)) indent += "  ";
+            });
+            diagramSource = formatted.substring(1, formatted.length-2);
+
+            // write diagram source to an invisible link's target, then click that link to initiate download, based on https://stackoverflow.com/a/18197341
+            var dummyLink = document.createElement("a");
+            dummyLink.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(diagramSource));
+            dummyLink.setAttribute("download", "diagram.svg");
+            dummyLink.style.display = "none";
+            document.body.appendChild(dummyLink);
+
+            dummyLink.click();
+
+            document.body.removeChild(dummyLink);
         }
 
         function toggleDarkMode(checkbox) {
