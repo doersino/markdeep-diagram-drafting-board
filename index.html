@@ -240,7 +240,7 @@
     </aside>
     <footer class="hidden"></footer>
     <section>
-        <textarea onkeyup="render()">                    ____                      *
+        <textarea wrap="off">                    ____                      *
                    |    |_____.---.           |
                    o     _____|    )----------)-------.
                   / \   |     '---'           |     __|__
@@ -322,6 +322,52 @@ B  -------'  '---'     |              |     ''---'
             }
         }
         setup();
+
+        var overwriteMode = true;
+
+        // via https://stackoverflow.com/a/6637396
+        function inputChanged1(e) {
+            if (e.keyCode == 9) {  // tab
+                e.preventDefault();
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+
+                // set textarea value to: text before caret + tab + text after caret
+                input.value = (input.value.substring(0, start)
+                            + "    "
+                            + input.value.substring(overwriteMode ? end + 4 : end));
+
+                // put caret at right position again
+                this.selectionStart =
+                this.selectionEnd = start + 4;
+            }
+            //setTimeout(render, 0);
+        }
+
+        var oldLength = 0;
+        function inputChanged2(e) {
+            // TODO not when entering line break, and perhaps other chars? at the end of a line (i.e. char at selectionstart is newline or something?)
+            // TODO remove "flickering" somehow
+            // TODO figure out how tab should work when selections are active in this mode, also figure out selections in general (idea: repeat new char n times? but how would that mesh with pasting? lotsa cases!)
+            // TODO but it basically works!!! (unless typing fast)
+            if (overwriteMode && input.value.length > oldLength) {
+                console.log(oldLength +" "+ input.value.length);
+
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+
+                // set textarea value to: text before caret + tab + text after caret
+                input.value = input.value.substring(0, start) + input.value.substring(end + 1);
+
+                // put caret at right position again
+                this.selectionStart = this.selectionEnd = start;
+            }
+
+            oldLength = input.value.length;
+            setTimeout(render, 0);
+        }
+        input.addEventListener("keydown", inputChanged1);
+        input.addEventListener("keyup", inputChanged2);
 
         // take input and convert it to a diagram, superimpose that on the input
         function render() {
