@@ -8,7 +8,7 @@
         }
         html {
             /* ridiculous values, to be overwritten via js */
-            --font-size: 10px;
+            --font-size: 15px;
             --font-stack: "Comic Sans MS";
 
             --sidebar-width: 17rem;
@@ -105,7 +105,7 @@
             color: #888;
         }
         span {
-            font-size: 0.8em;
+            font-size: 0.85em;
             display: block;
         }
         a.reset {
@@ -230,7 +230,7 @@
             <br>line height <b>1.25em</b>
         </label>
         <label>
-            <input type="range" min="-0.30" max="0.30" step="0.01" value="0.15" data-default="0.15" class="letter-spacing-slider" oninput="adjustLetterSpacing(this.value)">
+            <input type="range" min="-0.30" max="0.45" step="0.01" value="0.15" data-default="0.15" class="letter-spacing-slider" oninput="adjustLetterSpacing(this.value)">
             <br>letter spacing <b>0.15px</b>
         </label>
         <span>Both of the above might need adjusting depending on your zoom level, browser and installed fonts.</span>
@@ -402,7 +402,7 @@ B  -------'  '---'     |              |     ''---'
             var computedFontSize = computedStyle.getPropertyValue("font-size");
             var computedStrokeWidth = computedStyle.getPropertyValue("stroke-width");
 
-            // make a copy of the rendered diagram and apply both extracted "dynamic" styles and "static" styles from the Markdeep source code (version 1.06 – might need updating in the future)
+            // make a copy of the rendered diagram and apply both extracted "dynamic" styles and "static" styles from the Markdeep source code (version 1.09 – might need updating in the future)
             var clonedDiagramElement = diagramElement.cloneNode(true);
             clonedDiagramElement.style += `
                 display: block;
