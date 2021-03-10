@@ -201,7 +201,7 @@
         <span>Hides or shows the superimposed preview.</span>
 
         <button onclick="copySource(this);">copy source<b></b></button>
-        <span>The copied source will be surrounded with asterisks, ready for pasting into a Markdeep document.</span>
+        <span>The copied source will be surrounded with asterisks, ready for pasting into a Markdeep document <em>(or back into this tool, which will strip the asterisks on paste to ease further editing)</em>.</span>
 
         <button onclick="downloadSVG();">download svg<b></b></button>
         <span>Handy for inserting your diagram into a non-Markdeep document. <em>Includes the source in a &lt;metadata&gt; tag.</em></span>
@@ -231,7 +231,7 @@
     </aside>
     <footer class="hidden"></footer>
     <section>
-        <textarea onkeyup="render()">                    ____                      *
+        <textarea>                    ____                      *
                    |    |_____.---.           |
                    o     _____|    )----------)-------.
                   / \   |     '---'           |     __|__
@@ -258,6 +258,7 @@ B  -------'  '---'     |              |     ''---'
 
     <script>window.markdeepOptions = {mode: "script"};</script>
     <script src="https://casual-effects.com/markdeep/latest/markdeep.min.js" charset="utf-8"></script>
+    <script src="extractDiagram.js"></script>
     <script>
         document.head.innerHTML = document.head.innerHTML + window.markdeep.stylesheet();
 
@@ -324,6 +325,33 @@ B  -------'  '---'     |              |     ''---'
             output.innerHTML = diagramSource;
         }
 
+        input.addEventListener('keyup', render);
+
+        // via https://stackoverflow.com/a/11077016
+        function insertAtCursor(myField, myValue) {
+            if (myField.selectionStart || myField.selectionStart == '0') {
+                var startPos = myField.selectionStart;
+                var endPos = myField.selectionEnd;
+                myField.value = myField.value.substring(0, startPos)
+                    + myValue
+                    + myField.value.substring(endPos, myField.value.length);
+            } else {
+                myField.value += myValue;
+            }
+        }
+
+        // on paste, extract diagram from clipboard if present and insert it
+        // into the input without marker asterisks (if the clipboard doesn't
+        // seem to contain a diagram, do nothing special)
+        input.addEventListener('paste', (event) => {
+            var paste = (event.clipboardData || window.clipboardData).getData("text");
+            var diagram = extractDiagram("\n" + paste + "\n");
+            if (diagram.diagramString) {
+                insertAtCursor(input, diagram.diagramString);
+                event.preventDefault();
+            }
+        });
+
         function togglePreview(checkbox) {
             if (checkbox.checked) {
                 output.style.display = "block";
@@ -333,7 +361,7 @@ B  -------'  '---'     |              |     ''---'
         }
 
         // copy source (optionally with Markdeep diagram marker asterisks) to the clipboard
-        function copySource(button, withAsterisks = true) {
+        function copySource(button, withAsterisks = true, padding = 0) {
             setStatus("Copying to the clipboard...")
             //setStatus("Copying to the clipboard" + (withAsterisks ? " (with asterisks)" : "") + "...")
 
@@ -354,10 +382,10 @@ B  -------'  '---'     |              |     ''---'
                 });
 
                 // pad with spaces and insert leading and trailing asterisks
-                lines = lines.map(line => "* " + line.padEnd(longestLineLength, " ") + " *");
+                lines = lines.map(line => "*" + " ".repeat(padding) + line.padEnd(longestLineLength, " ") + " ".repeat(padding) + "*");
 
                 // insert top and bottom rows of asterisks
-                var topBottom = "*".repeat(longestLineLength + 4);
+                var topBottom = "*".repeat(longestLineLength + 2 + 2 * padding);
                 lines.splice(0, 0, topBottom);
                 lines.push(topBottom);
 
